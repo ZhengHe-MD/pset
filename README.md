@@ -8,5 +8,5 @@ Here is the list:
 
 | Name | Source | Code |
 |------|--------|------|
-| Interpreter | [Let's Build a Simple Interpreter](https://github.com/rspivak/lsbasi) | ![lsbasi](./lsbasi) |
+| Interpreter | [Let's Build a Simple Interpreter](https://github.com/rspivak/lsbasi) | [lsbasi](./lsbasi) |
 
