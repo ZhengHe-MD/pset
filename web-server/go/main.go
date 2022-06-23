@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
 )
 
@@ -43,10 +44,11 @@ func (ws *WebServer) Start() {
 func (ws *WebServer) handleOne(conn net.Conn) {
 	defer conn.Close()
 
-	conn.Write([]byte("HTTP/1.1 200\r\n"))
-	conn.Write([]byte("Server: WebServer 0.1\r\n"))
-	conn.Write([]byte("\r\n"))
-	conn.Write([]byte("hello, world"))
+	io.WriteString(conn, "HTTP/1.1 200 OK\r\n"+
+		"Content-Type: text/html; charset=utf-8\r\n"+
+		"Content-Length: 20\r\n"+
+		"\r\n"+
+		"<h1>hello world</h1>")
 }
 
 func main() {
