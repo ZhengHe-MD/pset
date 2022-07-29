@@ -1,0 +1,9 @@
+students
+id,name,age
+10001,Michael,24
+10002,Jill,26
+10003,Richard,18
+10004,Hazard,27
+10005,Max,25
+10010,Alice,20
+10011,Bob,29
