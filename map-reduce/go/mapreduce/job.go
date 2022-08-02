@@ -2,6 +2,7 @@ package mr
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"hash/fnv"
 	"io"
@@ -15,13 +16,15 @@ import (
 // Job keeps all related information including input parameters,
 // map/reduce logic, runtime status, etc.
 type Job struct {
-	Id        string
-	InputDir  string     // the directory where input files reside
-	OutputDir string     // the directory where output files reside
-	Processor MapReducer // the real map/reduce logic user provides
-	R         int        // number of reduce tasks
+	Id            string
+	InputDir      string // the directory where input files reside
+	OutputDir     string // the directory where output files reside
+	ProcessorName string // the name of a MapReducer defined in mapreducers.go
+	R             int    // number of reduce tasks
 }
 
+// Sequential runs the job in a sequential manner.
+// Deprecated, in favor of calling the corresponding RPC method.
 func (job *Job) Sequential() (err error) {
 	files, err := ioutil.ReadDir(job.InputDir)
 	if err != nil {
@@ -36,7 +39,7 @@ func (job *Job) Sequential() (err error) {
 			Job:     job,
 		}
 
-		if err = task.DoMap(job.Processor); err != nil {
+		if err = task.DoMap(); err != nil {
 			return
 		}
 	}
@@ -45,7 +48,7 @@ func (job *Job) Sequential() (err error) {
 	for i := 0; i < job.R; i++ {
 		task := &ReduceTask{Id: strconv.Itoa(i), Job: job, MapTaskNum: len(files)}
 
-		if err = task.DoReduce(job.Processor); err != nil {
+		if err = task.DoReduce(); err != nil {
 			return
 		}
 	}
@@ -62,19 +65,26 @@ func (job *Job) Sequential() (err error) {
 	return
 }
 
+// MapTask provides all the information needed to run a map task.
 type MapTask struct {
 	Id      string
 	MapFile string // the input file to map phase.
 	Job     *Job
 }
 
-func (mt *MapTask) DoMap(mapper Mapper) (err error) {
+// DoMap physically runs the map task.
+func (mt *MapTask) DoMap() (err error) {
+	mapReducer, ok := MapReducers[mt.Job.ProcessorName]
+	if !ok {
+		return errors.New("processor " + mt.Job.ProcessorName + " not found")
+	}
+
 	byt, err := ioutil.ReadFile(mt.MapFile)
 	if err != nil {
 		return
 	}
 
-	kvs, err := mapper.Map(byt)
+	kvs, err := mapReducer.Map(byt)
 	if err != nil {
 		return
 	}
@@ -121,13 +131,20 @@ func hash(key string) (hsh int, err error) {
 	return
 }
 
+// ReduceTask provides all the information needed to run a reduce task.
 type ReduceTask struct {
 	Id         string
 	Job        *Job
 	MapTaskNum int
 }
 
-func (rt *ReduceTask) DoReduce(reducer Reducer) (err error) {
+// DoReduce physically runs the reduce task.
+func (rt *ReduceTask) DoReduce() (err error) {
+	mapReducer, ok := MapReducers[rt.Job.ProcessorName]
+	if !ok {
+		return errors.New("processor " + rt.Job.ProcessorName + " not found")
+	}
+
 	var kvs []KeyValue
 
 	// shuffle
@@ -169,7 +186,7 @@ func (rt *ReduceTask) DoReduce(reducer Reducer) (err error) {
 			vs = append(vs, kvs[i].Value)
 		}
 
-		if v, err = reducer.Reduce(k, vs); err != nil {
+		if v, err = mapReducer.Reduce(k, vs); err != nil {
 			return
 		}
 

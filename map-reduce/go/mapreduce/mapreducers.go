@@ -1,21 +1,78 @@
-package main
+package mr
 
 import (
 	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
-	"mr"
+	"strconv"
 )
 
-var _ mr.MapReducer = Join{}
+var MapReducers = map[string]MapReducer{
+	"wc":  WordCount{},
+	"avg": Avg{},
+	"join": Join{
+		// NOTE: for the sake of simplicity, hard-code the join columns here.
+		On: map[string]string{
+			"students":    "id",
+			"enrollments": "student_id",
+		},
+	},
+}
+
+type WordCount struct{}
+
+func (wc WordCount) Map(data []byte) (kvs []KeyValue, err error) {
+	for _, byt := range bytes.Fields(data) {
+		kvs = append(kvs, KeyValue{
+			Key:   string(byt),
+			Value: "1",
+		})
+	}
+	return
+}
+
+func (wc WordCount) Reduce(key string, values []string) (string, error) {
+	return strconv.Itoa(len(values)), nil
+}
+
+type Avg struct{}
+
+func (a Avg) Map(data []byte) (kvs []KeyValue, err error) {
+	var cnt, sum, num int
+	for _, byt := range bytes.Fields(data) {
+		num, err = strconv.Atoi(string(byt))
+		if err != nil {
+			return
+		}
+		sum += num
+		cnt += 1
+	}
+
+	kvs = append(kvs,
+		KeyValue{Key: "sum", Value: strconv.Itoa(sum)},
+		KeyValue{Key: "cnt", Value: strconv.Itoa(cnt)})
+	return
+}
+
+func (a Avg) Reduce(key string, values []string) (value string, err error) {
+	var sum, num int
+	for _, v := range values {
+		num, err = strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		sum += num
+	}
+	value = strconv.Itoa(sum)
+	return
+}
 
 type Join struct {
 	On map[string]string // specify what fields to join on, map<table, field>
 }
 
-func (join Join) Map(data []byte) (kvs []mr.KeyValue, err error) {
+func (join Join) Map(data []byte) (kvs []KeyValue, err error) {
 	bytLines := bytes.Split(data, []byte{'\n'})
 	if len(bytLines) <= 2 {
 		err = errors.New("empty table")
@@ -47,7 +104,7 @@ func (join Join) Map(data []byte) (kvs []mr.KeyValue, err error) {
 
 	var byt []byte
 	for _, bytLine := range bytLines[2:] {
-		kv := mr.KeyValue{}
+		kv := KeyValue{}
 		cols := make(map[string]string, len(colNames))
 		cols["_table"] = table
 		for j, bytCol := range bytes.Split(bytLine, []byte{','}) {
@@ -108,25 +165,4 @@ func (join Join) Reduce(key string, values []string) (v string, err error) {
 
 	v = string(byt)
 	return
-}
-
-func main() {
-	job := mr.Job{
-		Id:        "join",
-		InputDir:  "./mixtures/input",
-		OutputDir: "./mixtures/output",
-		Processor: Join{
-			On: map[string]string{
-				"students":    "id",
-				"enrollments": "student_id",
-			},
-		},
-		R: 3,
-	}
-
-	if err := job.Sequential(); err != nil {
-		log.Panic(err)
-	}
-
-	log.Println("done")
 }
