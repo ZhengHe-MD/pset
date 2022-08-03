@@ -21,6 +21,8 @@ type Job struct {
 	OutputDir     string // the directory where output files reside
 	ProcessorName string // the name of a MapReducer defined in mapreducers.go
 	R             int    // number of reduce tasks
+
+	operation *Operation // job status
 }
 
 // Sequential runs the job in a sequential manner.

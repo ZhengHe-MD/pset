@@ -23,6 +23,7 @@ type Master struct {
 	wi      int                    // index of current worker, used to implement round-robin strategy.
 	workers []string               // registered worker addresses.
 	clients map[string]*rpc.Client // map worker (address) to it's rpc client.
+	jobs    map[string]*Job        // in-memory job store, which maps operation id to job.
 
 	shutdown chan struct{}
 }
@@ -32,6 +33,7 @@ func NewMaster(address string) *Master {
 	return &Master{
 		Address:  address,
 		clients:  make(map[string]*rpc.Client),
+		jobs:     make(map[string]*Job),
 		shutdown: make(chan struct{}),
 	}
 }
@@ -61,17 +63,37 @@ type SubmitArgs struct {
 
 // Operation is the reply from Master node when a client calls SubmitJob.
 type Operation struct {
-	Id   string
-	Done bool
+	Id    string
+	Done  bool
+	Error error
 }
 
 // SubmitJob is called when a client wants to submit a new job to Master node.
-func (m *Master) SubmitJob(args *SubmitArgs, reply *Operation) error {
-	reply.Id = randString(16)
-	if args.Distributed {
-		return m.distributed(args, reply)
-	}
-	return m.sequential(args, reply)
+func (m *Master) SubmitJob(args *SubmitArgs, operation *Operation) error {
+	job := args.Job
+	job.Id = randString(8)
+	operation.Id = randString(32)
+	job.operation = operation
+
+	m.mu.Lock()
+	m.jobs[operation.Id] = job
+	m.mu.Unlock()
+
+	go func() {
+		var err error
+		if args.Distributed {
+			err = m.distributed(args, operation)
+		} else {
+			err = m.sequential(args, operation)
+		}
+		if err != nil {
+			operation.Error = err
+		} else {
+			operation.Done = true
+		}
+	}()
+
+	return nil
 }
 
 // getClient is expected to choose a client of the worker with the least load.
@@ -107,9 +129,8 @@ func (m *Master) getWorker() (worker string, err error) {
 	return
 }
 
-// TODO: reply, asynchronously
 // sequential runs the map/reduce job sequentially on an arbitrary Worker node.
-func (m *Master) sequential(args *SubmitArgs, reply *Operation) (err error) {
+func (m *Master) sequential(args *SubmitArgs, operation *Operation) (err error) {
 	job := args.Job
 
 	files, err := ioutil.ReadDir(job.InputDir)
@@ -163,11 +184,12 @@ func (m *Master) sequential(args *SubmitArgs, reply *Operation) (err error) {
 			}
 		}
 	}
+
 	return
 }
 
 // distributed runs the map/reduce job on available Worker nodes in a distributed manner.
-func (m *Master) distributed(args *SubmitArgs, reply *Operation) (err error) {
+func (m *Master) distributed(args *SubmitArgs, operation *Operation) (err error) {
 	job := args.Job
 
 	files, err := ioutil.ReadDir(job.InputDir)
@@ -247,8 +269,19 @@ type GetOperationArgs struct {
 }
 
 // GetOperation requests the operation status of a map/reduce job.
-func (m *Master) GetOperation(args *GetOperationArgs, reply *Operation) error {
-	panic("implements me")
+func (m *Master) GetOperation(args *GetOperationArgs, operation *Operation) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	job, ok := m.jobs[args.Id]
+	if !ok {
+		return errors.New("operation not found")
+	}
+	// copy job.operation's content to operation
+	operation.Id = job.operation.Id
+	operation.Done = job.operation.Done
+	operation.Error = job.operation.Error
+	return nil
 }
 
 func (m *Master) serveRPC() (err error) {

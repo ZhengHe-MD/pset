@@ -1,9 +1,31 @@
 package mr
 
 import (
+	"log"
 	"net/rpc"
 	"testing"
+	"time"
 )
+
+func _wait(t *testing.T, client *rpc.Client, operation *Operation) {
+	log.Printf("job submitted, operation id %s\n", operation.Id)
+	if operation.Done {
+		t.Fatal("operation.Done should be false right after SubmitJob")
+	}
+
+	var done bool
+	for !done {
+		op := new(Operation)
+		err := client.Call("Master.GetOperation", &GetOperationArgs{Id: operation.Id}, op)
+		if err != nil {
+			t.Fatal(err)
+		}
+		log.Println(op)
+		done = op.Done
+		time.Sleep(1 * time.Second)
+	}
+	return
+}
 
 func TestExamples(t *testing.T) {
 	cluster := NewCluster(2)
@@ -32,7 +54,6 @@ func TestExamples(t *testing.T) {
 		operation := new(Operation)
 		err = client.Call("Master.SubmitJob", &SubmitArgs{
 			Job: &Job{
-				Id:            randString(10),
 				InputDir:      "./mixtures/wc/input",
 				OutputDir:     "./mixtures/wc/output",
 				ProcessorName: "wc",
@@ -43,13 +64,13 @@ func TestExamples(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		_wait(t, client, operation)
 	})
 
 	t.Run("word count", func(t *testing.T) {
 		operation := new(Operation)
 		err = client.Call("Master.SubmitJob", &SubmitArgs{
 			Job: &Job{
-				Id:            randString(10),
 				InputDir:      "./mixtures/wc/input",
 				OutputDir:     "./mixtures/wc/output",
 				ProcessorName: "wc",
@@ -60,13 +81,13 @@ func TestExamples(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		_wait(t, client, operation)
 	})
 
 	t.Run("average", func(t *testing.T) {
 		operation := new(Operation)
 		err = client.Call("Master.SubmitJob", &SubmitArgs{
 			Job: &Job{
-				Id:            randString(10),
 				InputDir:      "./mixtures/avg/input",
 				OutputDir:     "./mixtures/avg/output",
 				ProcessorName: "avg",
@@ -77,13 +98,13 @@ func TestExamples(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		_wait(t, client, operation)
 	})
 
 	t.Run("join", func(t *testing.T) {
 		operation := new(Operation)
 		err = client.Call("Master.SubmitJob", &SubmitArgs{
 			Job: &Job{
-				Id:            randString(10),
 				InputDir:      "./mixtures/join/input",
 				OutputDir:     "./mixtures/join/output",
 				ProcessorName: "join",
@@ -94,5 +115,6 @@ func TestExamples(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		_wait(t, client, operation)
 	})
 }
