@@ -216,8 +216,10 @@ func (m *Master) distributed(args *SubmitArgs, operation *Operation) (err error)
 		}
 
 		go func() {
-			// TODO: handle error
-			_ = client.Call("Worker.DoTask", doTaskArgs, nil)
+			err := client.Call("Worker.DoTask", doTaskArgs, nil)
+			if err != nil {
+				operation.Error = err
+			}
 			mwg.Done()
 		}()
 	}
@@ -243,8 +245,10 @@ func (m *Master) distributed(args *SubmitArgs, operation *Operation) (err error)
 		}
 
 		go func() {
-			// TODO: handle error
-			_ = client.Call("Worker.DoTask", doTaskArgs, nil)
+			err := client.Call("Worker.DoTask", doTaskArgs, nil)
+			if err != nil {
+				operation.Error = err
+			}
 			rwg.Done()
 		}()
 	}

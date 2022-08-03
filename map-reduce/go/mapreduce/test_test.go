@@ -22,6 +22,9 @@ func _wait(t *testing.T, client *rpc.Client, operation *Operation) {
 		}
 		log.Println(op)
 		done = op.Done
+		if op.Error != nil {
+			t.Fatal(op.Error)
+		}
 		time.Sleep(1 * time.Second)
 	}
 	return
