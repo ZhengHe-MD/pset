@@ -147,7 +147,7 @@ func (m *Master) sequential(args *SubmitArgs, operation *Operation) (err error) 
 	for i, file := range files {
 		doTaskArgs := &DoTaskArgs{
 			Type: TaskTypeMap,
-			Map: &MapTask{
+			MapTask: &MapTask{
 				Id:      strconv.Itoa(i),
 				MapFile: path.Join(job.InputDir, file.Name()),
 				Job:     job,
@@ -163,7 +163,7 @@ func (m *Master) sequential(args *SubmitArgs, operation *Operation) (err error) 
 	for i := 0; i < job.R; i++ {
 		doTaskArgs := &DoTaskArgs{
 			Type: TaskTypeReduce,
-			Reduce: &ReduceTask{
+			ReduceTask: &ReduceTask{
 				Id:         strconv.Itoa(i),
 				Job:        job,
 				MapTaskNum: len(files),
@@ -203,7 +203,7 @@ func (m *Master) distributed(args *SubmitArgs, operation *Operation) (err error)
 	for i, file := range files {
 		doTaskArgs := &DoTaskArgs{
 			Type: TaskTypeMap,
-			Map: &MapTask{
+			MapTask: &MapTask{
 				Id:      strconv.Itoa(i),
 				MapFile: path.Join(job.InputDir, file.Name()),
 				Job:     job,
@@ -224,7 +224,7 @@ func (m *Master) distributed(args *SubmitArgs, operation *Operation) (err error)
 		}()
 	}
 	mwg.Wait()
-	log.Println("Map phase done.")
+	log.Println("MapTask phase done.")
 
 	// reduce phase
 	var rwg sync.WaitGroup
@@ -232,7 +232,7 @@ func (m *Master) distributed(args *SubmitArgs, operation *Operation) (err error)
 	for i := 0; i < job.R; i++ {
 		doTaskArgs := &DoTaskArgs{
 			Type: TaskTypeReduce,
-			Reduce: &ReduceTask{
+			ReduceTask: &ReduceTask{
 				Id:         strconv.Itoa(i),
 				Job:        job,
 				MapTaskNum: len(files),
@@ -253,7 +253,7 @@ func (m *Master) distributed(args *SubmitArgs, operation *Operation) (err error)
 		}()
 	}
 	rwg.Wait()
-	log.Println("Reduce phase done.")
+	log.Println("ReduceTask phase done.")
 
 	// remove temporary files
 	for i := 0; i < len(files); i++ {

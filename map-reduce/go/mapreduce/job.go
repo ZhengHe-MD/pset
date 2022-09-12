@@ -41,7 +41,7 @@ func (job *Job) Sequential() (err error) {
 			Job:     job,
 		}
 
-		if err = task.DoMap(); err != nil {
+		if err = task.Do(); err != nil {
 			return
 		}
 	}
@@ -50,7 +50,7 @@ func (job *Job) Sequential() (err error) {
 	for i := 0; i < job.R; i++ {
 		task := &ReduceTask{Id: strconv.Itoa(i), Job: job, MapTaskNum: len(files)}
 
-		if err = task.DoReduce(); err != nil {
+		if err = task.Do(); err != nil {
 			return
 		}
 	}
@@ -74,8 +74,8 @@ type MapTask struct {
 	Job     *Job
 }
 
-// DoMap physically runs the map task.
-func (mt *MapTask) DoMap() (err error) {
+// Do physically runs the map task.
+func (mt *MapTask) Do() (err error) {
 	mapReducer, ok := MapReducers[mt.Job.ProcessorName]
 	if !ok {
 		return errors.New("processor " + mt.Job.ProcessorName + " not found")
@@ -93,12 +93,18 @@ func (mt *MapTask) DoMap() (err error) {
 
 	var intermediates []*os.File
 	for i := 0; i < mt.Job.R; i++ {
-		var file *os.File
-		file, err = os.OpenFile(intermediateName(mt.Job.Id, mt.Id, strconv.Itoa(i)), os.O_CREATE|os.O_RDWR, 0666)
+		var intermediate *os.File
+		intermediate, err = os.OpenFile(intermediateName(mt.Job.Id, mt.Id, strconv.Itoa(i)), os.O_CREATE|os.O_RDWR, 0666)
 		if err != nil {
 			return
 		}
-		intermediates = append(intermediates, file)
+		defer func() {
+			closeErr := intermediate.Close()
+			if err == nil {
+				err = closeErr
+			}
+		}()
+		intermediates = append(intermediates, intermediate)
 	}
 
 	var encoders []Encoder
@@ -115,10 +121,6 @@ func (mt *MapTask) DoMap() (err error) {
 		if err = encoders[hsh%mt.Job.R].Encode(&kv); err != nil {
 			return
 		}
-	}
-
-	for _, intermediate := range intermediates {
-		intermediate.Close()
 	}
 
 	return
@@ -140,8 +142,8 @@ type ReduceTask struct {
 	MapTaskNum int
 }
 
-// DoReduce physically runs the reduce task.
-func (rt *ReduceTask) DoReduce() (err error) {
+// Do physically runs the reduce task.
+func (rt *ReduceTask) Do() (err error) {
 	mapReducer, ok := MapReducers[rt.Job.ProcessorName]
 	if !ok {
 		return errors.New("processor " + rt.Job.ProcessorName + " not found")
@@ -169,7 +171,9 @@ func (rt *ReduceTask) DoReduce() (err error) {
 		}
 
 		kvs = append(kvs, shard...)
-		intermediate.Close()
+		if closeErr := intermediate.Close(); closeErr != nil {
+			return closeErr
+		}
 	}
 
 	// sort by key
@@ -204,7 +208,12 @@ func (rt *ReduceTask) DoReduce() (err error) {
 	if err != nil {
 		return
 	}
-	defer outputFile.Close()
+	defer func() {
+		closeErr := outputFile.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
 
 	encoder := json.NewEncoder(outputFile)
 	for _, kv := range rkvs {

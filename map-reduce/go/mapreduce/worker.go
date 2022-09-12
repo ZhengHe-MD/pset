@@ -28,9 +28,9 @@ func NewWorker(address string, master string) *Worker {
 
 // DoTaskArgs represents arguments passed when the DoTask method of a worker node is called.
 type DoTaskArgs struct {
-	Type   TaskType
-	Map    *MapTask
-	Reduce *ReduceTask
+	Type       TaskType
+	MapTask    *MapTask
+	ReduceTask *ReduceTask
 }
 
 // TaskType denotes the type of task, only map or reduce is allowed.
@@ -57,11 +57,11 @@ func (tt TaskType) String() string {
 func (w *Worker) DoTask(args *DoTaskArgs, _ *struct{}) error {
 	switch args.Type {
 	case TaskTypeMap:
-		log.Printf("worker %s start doing %s task %s\n", w.address, args.Type, args.Map.Id)
-		return args.Map.DoMap()
+		log.Printf("worker %s start doing %s task %s\n", w.address, args.Type, args.MapTask.Id)
+		return args.MapTask.Do()
 	case TaskTypeReduce:
-		log.Printf("worker %s start doing %s task %s\n", w.address, args.Type, args.Reduce.Id)
-		return args.Reduce.DoReduce()
+		log.Printf("worker %s start doing %s task %s\n", w.address, args.Type, args.ReduceTask.Id)
+		return args.ReduceTask.Do()
 	default:
 		return errors.New(fmt.Sprintf("unsupported task type %d", args.Type))
 	}
