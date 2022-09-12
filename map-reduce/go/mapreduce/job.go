@@ -25,53 +25,11 @@ type Job struct {
 	operation *Operation // job status
 }
 
-// Sequential runs the job in a sequential manner.
-// Deprecated, in favor of calling the corresponding RPC method.
-func (job *Job) Sequential() (err error) {
-	files, err := ioutil.ReadDir(job.InputDir)
-	if err != nil {
-		return
-	}
-
-	// map phase
-	for i, file := range files {
-		task := &MapTask{
-			Id:      strconv.Itoa(i),
-			MapFile: path.Join(job.InputDir, file.Name()),
-			Job:     job,
-		}
-
-		if err = task.Do(); err != nil {
-			return
-		}
-	}
-
-	// reduce phase
-	for i := 0; i < job.R; i++ {
-		task := &ReduceTask{Id: strconv.Itoa(i), Job: job, MapTaskNum: len(files)}
-
-		if err = task.Do(); err != nil {
-			return
-		}
-	}
-
-	// remove temporary files
-	for i := 0; i < len(files); i++ {
-		for j := 0; j < job.R; j++ {
-			err = os.Remove(intermediateName(job.Id, strconv.Itoa(i), strconv.Itoa(j)))
-			if err != nil {
-				return
-			}
-		}
-	}
-	return
-}
-
 // MapTask provides all the information needed to run a map task.
 type MapTask struct {
-	Id      string
-	MapFile string // the input file to map phase.
-	Job     *Job
+	Id        string
+	InputFile string // the input file to map phase.
+	Job       *Job
 }
 
 // Do physically runs the map task.
@@ -81,7 +39,7 @@ func (mt *MapTask) Do() (err error) {
 		return errors.New("processor " + mt.Job.ProcessorName + " not found")
 	}
 
-	byt, err := ioutil.ReadFile(mt.MapFile)
+	byt, err := ioutil.ReadFile(mt.InputFile)
 	if err != nil {
 		return
 	}
@@ -91,25 +49,25 @@ func (mt *MapTask) Do() (err error) {
 		return
 	}
 
-	var intermediates []*os.File
+	mappedFiles := make([]*os.File, 0, mt.Job.R)
 	for i := 0; i < mt.Job.R; i++ {
-		var intermediate *os.File
-		intermediate, err = os.OpenFile(intermediateName(mt.Job.Id, mt.Id, strconv.Itoa(i)), os.O_CREATE|os.O_RDWR, 0666)
+		var mf *os.File
+		mf, err = os.OpenFile(mappedFile(mt.Job.Id, mt.Id, strconv.Itoa(i)), os.O_CREATE|os.O_RDWR, 0666)
 		if err != nil {
 			return
 		}
 		defer func() {
-			closeErr := intermediate.Close()
+			closeErr := mf.Close()
 			if err == nil {
 				err = closeErr
 			}
 		}()
-		intermediates = append(intermediates, intermediate)
+		mappedFiles = append(mappedFiles, mf)
 	}
 
-	var encoders []Encoder
-	for _, intermediate := range intermediates {
-		encoders = append(encoders, json.NewEncoder(intermediate))
+	encoders := make([]Encoder, 0, mt.Job.R)
+	for _, mf := range mappedFiles {
+		encoders = append(encoders, json.NewEncoder(mf))
 	}
 
 	var hsh int
@@ -137,9 +95,9 @@ func hash(key string) (hsh int, err error) {
 
 // ReduceTask provides all the information needed to run a reduce task.
 type ReduceTask struct {
-	Id         string
-	Job        *Job
-	MapTaskNum int
+	Id  string
+	M   int // number of map tasks
+	Job *Job
 }
 
 // Do physically runs the reduce task.
@@ -152,15 +110,15 @@ func (rt *ReduceTask) Do() (err error) {
 	var kvs []KeyValue
 
 	// shuffle
-	var intermediate *os.File
-	for i := 0; i < rt.MapTaskNum; i++ {
-		intermediate, err = os.Open(intermediateName(rt.Job.Id, strconv.Itoa(i), rt.Id))
+	var mf *os.File
+	for i := 0; i < rt.M; i++ {
+		mf, err = os.Open(mappedFile(rt.Job.Id, strconv.Itoa(i), rt.Id))
 		if err != nil {
 			return
 		}
 
 		var shard []KeyValue
-		decoder := json.NewDecoder(intermediate)
+		decoder := json.NewDecoder(mf)
 		var kv KeyValue
 		for {
 			err = decoder.Decode(&kv)
@@ -171,13 +129,15 @@ func (rt *ReduceTask) Do() (err error) {
 		}
 
 		kvs = append(kvs, shard...)
-		if closeErr := intermediate.Close(); closeErr != nil {
+		if closeErr := mf.Close(); closeErr != nil {
 			return closeErr
 		}
 	}
 
 	// sort by key
-	sort.Sort(ByKey(kvs))
+	sort.Slice(kvs, func(i, j int) bool {
+		return kvs[i].Key < kvs[j].Key
+	})
 
 	// reduce
 	var rkvs []KeyValue
@@ -203,7 +163,7 @@ func (rt *ReduceTask) Do() (err error) {
 	}
 
 	outputFile, err := os.OpenFile(
-		path.Join(rt.Job.OutputDir, reduceName(rt.Job.Id, rt.Id)),
+		path.Join(rt.Job.OutputDir, reducedFile(rt.Job.Id, rt.Id)),
 		os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		return
@@ -224,12 +184,13 @@ func (rt *ReduceTask) Do() (err error) {
 	return
 }
 
-// intermediateName constructs the name of the intermediate file which a MapTask
-// produces for the corresponding ReduceTask.
-func intermediateName(jobId string, mapTask string, reduceTask string) string {
+// mappedFile constructs the name of the mapped file which a MapTask generates
+// for the corresponding ReduceTask.
+func mappedFile(jobId string, mapTask string, reduceTask string) string {
 	return fmt.Sprintf("mrtmp.%s-%s-%s", jobId, mapTask, reduceTask)
 }
 
-func reduceName(jobId string, reduceTask string) string {
+// reducedFile constructs the name of the reduced file which a ReduceTask generates.
+func reducedFile(jobId string, reduceTask string) string {
 	return fmt.Sprintf("mr.reduce.%s-%s", jobId, reduceTask)
 }

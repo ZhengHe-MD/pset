@@ -1,8 +1,6 @@
 package mr
 
 import (
-	"errors"
-	"fmt"
 	"log"
 	"net"
 	"net/rpc"
@@ -26,45 +24,26 @@ func NewWorker(address string, master string) *Worker {
 	}
 }
 
-// DoTaskArgs represents arguments passed when the DoTask method of a worker node is called.
-type DoTaskArgs struct {
-	Type       TaskType
-	MapTask    *MapTask
+// DoMapTaskArgs represents arguments passed to Worker.DoMapTask.
+type DoMapTaskArgs struct {
+	MapTask *MapTask
+}
+
+// DoMapTask executes the given map task synchronously.
+func (w *Worker) DoMapTask(args *DoMapTaskArgs, _ *struct{}) error {
+	log.Printf("worker %s start doing map task %s\n", w.address, args.MapTask.Id)
+	return args.MapTask.Do()
+}
+
+// DoReduceTaskArgs represents arguments passed to Worker.DoReduceTask.
+type DoReduceTaskArgs struct {
 	ReduceTask *ReduceTask
 }
 
-// TaskType denotes the type of task, only map or reduce is allowed.
-type TaskType int32
-
-const (
-	_ TaskType = iota
-	TaskTypeMap
-	TaskTypeReduce
-)
-
-func (tt TaskType) String() string {
-	switch tt {
-	case TaskTypeMap:
-		return "Map"
-	case TaskTypeReduce:
-		return "Reduce"
-	default:
-		return "Unknown"
-	}
-}
-
-// DoTask execute the given map/reduce task synchronously.
-func (w *Worker) DoTask(args *DoTaskArgs, _ *struct{}) error {
-	switch args.Type {
-	case TaskTypeMap:
-		log.Printf("worker %s start doing %s task %s\n", w.address, args.Type, args.MapTask.Id)
-		return args.MapTask.Do()
-	case TaskTypeReduce:
-		log.Printf("worker %s start doing %s task %s\n", w.address, args.Type, args.ReduceTask.Id)
-		return args.ReduceTask.Do()
-	default:
-		return errors.New(fmt.Sprintf("unsupported task type %d", args.Type))
-	}
+// DoReduceTask executes the given reduce task synchronously.
+func (w *Worker) DoReduceTask(args *DoReduceTaskArgs, _ *struct{}) error {
+	log.Printf("worker %s start doing reduce task %s\n", w.address, args.ReduceTask.Id)
+	return args.ReduceTask.Do()
 }
 
 func (w *Worker) register() error {

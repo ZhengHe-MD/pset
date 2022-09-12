@@ -22,13 +22,6 @@ type KeyValue struct {
 	Value string
 }
 
-// ByKey is used to sort KeyValue.
-type ByKey []KeyValue
-
-func (b ByKey) Len() int           { return len(b) }
-func (b ByKey) Less(i, j int) bool { return b[i].Key < b[j].Key }
-func (b ByKey) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
-
 // Encoder is the interface that wraps the basic Encode method.
 type Encoder interface {
 	Encode(v any) error

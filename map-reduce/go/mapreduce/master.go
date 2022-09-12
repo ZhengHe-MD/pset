@@ -145,32 +145,30 @@ func (m *Master) sequential(args *SubmitArgs, operation *Operation) (err error) 
 
 	// map phase
 	for i, file := range files {
-		doTaskArgs := &DoTaskArgs{
-			Type: TaskTypeMap,
+		doTaskArgs := &DoMapTaskArgs{
 			MapTask: &MapTask{
-				Id:      strconv.Itoa(i),
-				MapFile: path.Join(job.InputDir, file.Name()),
-				Job:     job,
+				Id:        strconv.Itoa(i),
+				InputFile: path.Join(job.InputDir, file.Name()),
+				Job:       job,
 			},
 		}
 
-		if err = client.Call("Worker.DoTask", doTaskArgs, nil); err != nil {
+		if err = client.Call("Worker.DoMapTask", doTaskArgs, nil); err != nil {
 			return
 		}
 	}
 
 	// reduce phase
 	for i := 0; i < job.R; i++ {
-		doTaskArgs := &DoTaskArgs{
-			Type: TaskTypeReduce,
+		doTaskArgs := &DoReduceTaskArgs{
 			ReduceTask: &ReduceTask{
-				Id:         strconv.Itoa(i),
-				Job:        job,
-				MapTaskNum: len(files),
+				Id:  strconv.Itoa(i),
+				Job: job,
+				M:   len(files),
 			},
 		}
 
-		if err = client.Call("Worker.DoTask", doTaskArgs, nil); err != nil {
+		if err = client.Call("Worker.DoReduceTask", doTaskArgs, nil); err != nil {
 			return
 		}
 	}
@@ -178,7 +176,7 @@ func (m *Master) sequential(args *SubmitArgs, operation *Operation) (err error) 
 	// remove temporary files
 	for i := 0; i < len(files); i++ {
 		for j := 0; j < job.R; j++ {
-			err = os.Remove(intermediateName(job.Id, strconv.Itoa(i), strconv.Itoa(j)))
+			err = os.Remove(mappedFile(job.Id, strconv.Itoa(i), strconv.Itoa(j)))
 			if err != nil {
 				return
 			}
@@ -200,25 +198,26 @@ func (m *Master) distributed(args *SubmitArgs, operation *Operation) (err error)
 	// map phase
 	var mwg sync.WaitGroup
 	mwg.Add(len(files))
+
+	var client *rpc.Client
 	for i, file := range files {
-		doTaskArgs := &DoTaskArgs{
-			Type: TaskTypeMap,
+		doTaskArgs := &DoMapTaskArgs{
 			MapTask: &MapTask{
-				Id:      strconv.Itoa(i),
-				MapFile: path.Join(job.InputDir, file.Name()),
-				Job:     job,
+				Id:        strconv.Itoa(i),
+				InputFile: path.Join(job.InputDir, file.Name()),
+				Job:       job,
 			},
 		}
 
-		client, err := m.getClient()
+		client, err = m.getClient()
 		if err != nil {
 			return err
 		}
 
 		go func() {
-			err := client.Call("Worker.DoTask", doTaskArgs, nil)
-			if err != nil {
-				operation.Error = err
+			rpcErr := client.Call("Worker.DoMapTask", doTaskArgs, nil)
+			if rpcErr != nil {
+				operation.Error = rpcErr
 			}
 			mwg.Done()
 		}()
@@ -230,24 +229,23 @@ func (m *Master) distributed(args *SubmitArgs, operation *Operation) (err error)
 	var rwg sync.WaitGroup
 	rwg.Add(job.R)
 	for i := 0; i < job.R; i++ {
-		doTaskArgs := &DoTaskArgs{
-			Type: TaskTypeReduce,
+		doTaskArgs := &DoReduceTaskArgs{
 			ReduceTask: &ReduceTask{
-				Id:         strconv.Itoa(i),
-				Job:        job,
-				MapTaskNum: len(files),
+				Id:  strconv.Itoa(i),
+				Job: job,
+				M:   len(files),
 			},
 		}
 
-		client, err := m.getClient()
+		client, err = m.getClient()
 		if err != nil {
 			return err
 		}
 
 		go func() {
-			err := client.Call("Worker.DoTask", doTaskArgs, nil)
-			if err != nil {
-				operation.Error = err
+			rpcErr := client.Call("Worker.DoReduceTask", doTaskArgs, nil)
+			if rpcErr != nil {
+				operation.Error = rpcErr
 			}
 			rwg.Done()
 		}()
@@ -258,7 +256,7 @@ func (m *Master) distributed(args *SubmitArgs, operation *Operation) (err error)
 	// remove temporary files
 	for i := 0; i < len(files); i++ {
 		for j := 0; j < job.R; j++ {
-			err = os.Remove(intermediateName(job.Id, strconv.Itoa(i), strconv.Itoa(j)))
+			err = os.Remove(mappedFile(job.Id, strconv.Itoa(i), strconv.Itoa(j)))
 			if err != nil {
 				return
 			}
