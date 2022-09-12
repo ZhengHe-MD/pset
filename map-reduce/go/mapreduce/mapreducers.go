@@ -11,6 +11,9 @@ import (
 var MapReducers = map[string]MapReducer{
 	"wc":  WordCount{},
 	"avg": Avg{},
+	"select": Select{
+		Where: map[string]string{"name": "Jill"},
+	},
 	"join": Join{
 		// NOTE: for the sake of simplicity, hard-code the join columns here.
 		On: map[string]string{
@@ -66,6 +69,54 @@ func (a Avg) Reduce(key string, values []string) (value string, err error) {
 	}
 	value = strconv.Itoa(sum)
 	return
+}
+
+type Select struct {
+	// Where represents the conditions that selected rows must satisfy.
+	// for simplicity, only one single condition with equals sign is
+	// implicitly supported. like,
+	// {
+	//   "name": "Jill"
+	// }
+	// more than one conditions or ops other than equals sign are not supported
+	// for the present, but it's not hard to implement that.
+	Where map[string]string
+}
+
+func (s Select) Map(data []byte) (kvs []KeyValue, err error) {
+	bytLines := bytes.Split(data, []byte{'\n'})
+	var whereIdx int
+	var colNames []string
+	for i, bytCol := range bytes.Split(bytLines[0], []byte{','}) {
+		if _, ok := s.Where[string(bytCol)]; ok {
+			whereIdx = i
+		}
+		colNames = append(colNames, string(bytCol))
+	}
+
+	var byt []byte
+	for _, bytLine := range bytLines[2:] {
+		kv := KeyValue{}
+		cols := make(map[string]string, len(colNames))
+		for j, bytCol := range bytes.Split(bytLine, []byte{','}) {
+			cols[colNames[j]] = string(bytCol)
+		}
+		if cols[colNames[whereIdx]] != s.Where[colNames[whereIdx]] {
+			continue
+		}
+		kv.Key = cols[colNames[0]] // hard-code the index of id field for simplicity
+		byt, err = json.Marshal(cols)
+		if err != nil {
+			return
+		}
+		kv.Value = string(byt)
+		kvs = append(kvs, kv)
+	}
+	return
+}
+
+func (s Select) Reduce(key string, values []string) (value string, err error) {
+	return values[0], nil
 }
 
 type Join struct {

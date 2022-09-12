@@ -94,6 +94,23 @@ func TestExamples(t *testing.T) {
 				InputDir:      "./mixtures/avg/input",
 				OutputDir:     "./mixtures/avg/output",
 				ProcessorName: "avg",
+				R:             1,
+			},
+			Distributed: true,
+		}, operation)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_wait(t, client, operation)
+	})
+
+	t.Run("select", func(t *testing.T) {
+		operation := new(Operation)
+		err = client.Call("Master.SubmitJob", &SubmitArgs{
+			Job: &Job{
+				InputDir:      "./mixtures/select/input",
+				OutputDir:     "./mixtures/select/output",
+				ProcessorName: "select",
 				R:             2,
 			},
 			Distributed: true,
