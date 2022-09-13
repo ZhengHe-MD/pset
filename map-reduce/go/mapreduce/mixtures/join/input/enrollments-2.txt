@@ -1,10 +1,5 @@
 enrollments
 id,student_id,course
-20001,10002,Math
-20002,10002,Physics
-20003,10003,Math
-20004,10003,History
-20005,10001,Physics
 20006,10001,History
 20007,10004,Music
 20008,10005,Music

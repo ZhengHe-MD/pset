@@ -34,7 +34,7 @@ References:
 | -------- | ------ |
 | Go       | ✅      |
 
-## Map Reduce
+## MapReduce
 
 | Language | Status |
 | -------- | ------ |
