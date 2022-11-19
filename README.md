@@ -7,35 +7,9 @@ Getting myself familiar with this Pset will do a great help to my skills, and mo
 
 Here is the list:
 
-## Interpreter
-
-| Language | Status |
-| -------- | ------ |
-| Go       | ✅      |
-
-References:
-
-* [Let's Build a Simple Interpreter](https://github.com/rspivak/lsbasi)
-
-## Web Server
-
-| Language | Status |
-| -------- | ------ |
-| Python   | ✅      |
-| Go       | ✅      |
-
-References:
-
-* [Let's Build a Web Server](https://github.com/rspivak/lsbaws)
-
-## Web Framework
-
-| Language | Status |
-| -------- | ------ |
-| Go       | ✅      |
-
-## MapReduce
-
-| Language | Status |
-| -------- | ------ |
-| Go       | ✅      |
+| Program                      | Go  | Python |
+|------------------------------|-----|--------|
+| [Interpreter](./interpreter) | ✅ | - |
+| [Web Server](./web-server) | ✅ | ✅ |
+| [Web Framework](./web-framework) | ✅ | - |
+| [MapReduce](./map-reduce) | ✅ | - |
