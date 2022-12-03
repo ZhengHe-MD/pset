@@ -7,9 +7,10 @@ Getting myself familiar with this Pset will do a great help to my skills, and mo
 
 Here is the list:
 
-| Program                          | Go  | Python |
-|----------------------------------|-----|--------|
-| [Interpreter](./interpreter)     | ✅   | -      |
-| [Web Server](./web-server)       | ✅   | ✅      |
-| [Web Framework](./web-framework) | ✅   | -      |
-| [MapReduce](./map-reduce)        | ✅   | -      |
+| Program                              | Go  | Python |
+|--------------------------------------|-----|--------|
+| [Interpreter](./interpreter)         | ✅   | -      |
+| [Web Server](./web-server)           | ✅   | ✅      |
+| [Web Framework](./web-framework)     | ✅   | -      |
+| [MapReduce](./map-reduce)            | ✅   | -      |
+| [Circuit Breaker](./circuit-breaker) | -   | -      | 
