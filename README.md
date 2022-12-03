@@ -13,4 +13,4 @@ Here is the list:
 | [Web Server](./web-server)           | ✅   | ✅      |
 | [Web Framework](./web-framework)     | ✅   | -      |
 | [MapReduce](./map-reduce)            | ✅   | -      |
-| [Circuit Breaker](./circuit-breaker) | -   | -      | 
+| [Circuit Breaker](./circuit-breaker) | ✅   | -      | 
