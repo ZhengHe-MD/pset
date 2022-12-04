@@ -7,7 +7,9 @@ design that is optimized for easier understanding. Although it's covered by equi
 
 ## Design
 
-![architecture](./hystrix-go.jpg)
+<p align="center">
+  <img src="./hystrix-go.jpg" />
+</p>
 
 **CircuitBreaker** is the uppermost entity that orchestrates all components to perform the task.
 Each time a command is executed, there will be a corresponding **Execution** entity generated along with it.
