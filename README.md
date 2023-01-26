@@ -16,3 +16,4 @@ Here is the list:
 | [Circuit Breaker](./circuit-breaker) | ✅   | -      |
 | [Debouncer](./debouncer)             | ✅   | -      |
 | [Throttler](./throttler)             | ✅   | -      |
+| [Cache](./cache)                     | ✅   | -      |
