@@ -1,12 +1,13 @@
 package internal
 
 import (
-	"github.com/stretchr/testify/assert"
 	"hystrix/config"
 	"hystrix/internal/collector"
 	"hystrix/internal/command"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetCircuitBreaker(t *testing.T) {

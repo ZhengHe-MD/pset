@@ -33,8 +33,8 @@ var (
 // which is fully compatible to go http server.
 //
 // features:
-// 	1. Shortcuts to build REST apis;
-// 	2. Easy to access parameters from url and query string;
+//  1. Shortcuts to build REST apis;
+//  2. Easy to access parameters from url and query string;
 //  3. Default handlers for panics and errors.
 type Router struct {
 	trees map[string]*handleTree

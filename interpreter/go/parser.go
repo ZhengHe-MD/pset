@@ -195,31 +195,41 @@ func NewParser(lexer *Lexer) (parser *Parser, err error) {
 // block : declarations compound_statement
 // declarations: (declaration)*
 // declaration: VAR (variable_declaration SEMI)+
-// 			   | (PROCEDURE ID (LPAREN formal_parameter_list RPAREN)? SEMI block SEMI)*
-//             | empty
+//
+//				   | (PROCEDURE ID (LPAREN formal_parameter_list RPAREN)? SEMI block SEMI)*
+//	            | empty
+//
 // variable_declaration : ID (COMMA ID)* COLON type_spec
 // formal_parameter_list: formal_parameters
-// 						| formal_parameters SEMI formal_parameter_list
+//
+//	| formal_parameters SEMI formal_parameter_list
+//
 // formal_parameters: ID (COMMA ID)* COLON type_spec
 // type_spec : INTEGER | REAL
 // compound_statement : BEGIN statement_list END
 // statement_list : statement
-// 				  | statement SEMI statement_list
+//
+//	| statement SEMI statement_list
+//
 // statement : compound_statement
-// 			 | procedure_call_statement
-// 			 | assignment_statement
-// 			 | empty
+//
+//	| procedure_call_statement
+//	| assignment_statement
+//	| empty
+//
 // procedure_call_statement : ID LPAREN (expr (COMMA expr)*)? RPAREN
 // assignment_statement : variable ASSIGN expr
 // empty :
 // expr: term ((PLUS | MINUS) term)*
 // term: factor ((MUL | INTEGER_DIV | FLOAT_DIV) factor)*
 // factor : PLUS factor
-// 		  | MINUS factor
-// 		  | INTEGER_CONST
-// 		  | REAL_CONST
-// 		  | LPAREN expr RPAREN
-// 		  | variable
+//
+//	| MINUS factor
+//	| INTEGER_CONST
+//	| REAL_CONST
+//	| LPAREN expr RPAREN
+//	| variable
+//
 // variable: ID
 type Parser struct {
 	lexer     *Lexer
@@ -294,8 +304,9 @@ func (p *Parser) declarations() (nodes []ASTNode, err error) {
 }
 
 // declaration: VAR (variable_declaration SEMI)+
-// 			   | (PROCEDURE ID (LPAREN formal_parameter_list RPAREN)? SEMI block SEMI)*
-//             | empty
+//
+//				   | (PROCEDURE ID (LPAREN formal_parameter_list RPAREN)? SEMI block SEMI)*
+//	            | empty
 func (p *Parser) declaration() (nodes []ASTNode, err error) {
 	if p.currToken.Kind == Var {
 		if err = p.eat(Var); err != nil {
@@ -392,7 +403,8 @@ func (p *Parser) variableDeclaration() (nodes []*VarDeclNode, err error) {
 }
 
 // formal_parameter_list: formal_parameters
-// 						| formal_parameters SEMI formal_parameter_list
+//
+//	| formal_parameters SEMI formal_parameter_list
 func (p *Parser) formalParameterList() (nodes []*ParamNode, err error) {
 	paramNodes, err := p.formalParameters()
 	if err != nil {
@@ -470,7 +482,8 @@ func (p *Parser) compoundStmt() (node *CompoundNode, err error) {
 }
 
 // statement_list : statement
-// 					| statement SEMI statement_list
+//
+//	| statement SEMI statement_list
 func (p *Parser) stmtList() (nodes []ASTNode, err error) {
 	var node ASTNode
 	if node, err = p.stmt(); err != nil {
@@ -493,9 +506,10 @@ func (p *Parser) stmtList() (nodes []ASTNode, err error) {
 }
 
 // statement : compound_statement
-// 			 | procedure_call_statement
-// 			 | assignment_statement
-// 			 | empty
+//
+//	| procedure_call_statement
+//	| assignment_statement
+//	| empty
 func (p *Parser) stmt() (node ASTNode, err error) {
 	if p.currToken.Kind == Begin {
 		return p.compoundStmt()
@@ -625,11 +639,12 @@ func (p *Parser) term() (node ASTNode, err error) {
 }
 
 // factor : PLUS factor
-// 		  | MINUS factor
-// 		  | INTEGER_CONST
-// 		  | REAL_CONST
-// 		  | LPAREN expr RPAREN
-// 		  | variable
+//
+//	| MINUS factor
+//	| INTEGER_CONST
+//	| REAL_CONST
+//	| LPAREN expr RPAREN
+//	| variable
 func (p *Parser) factor() (node ASTNode, err error) {
 	token := p.currToken
 	switch token.Kind {

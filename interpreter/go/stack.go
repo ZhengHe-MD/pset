@@ -31,7 +31,7 @@ func (cs *CallStack) Push(ar *ActivationRecord) {
 	cs.records = append(cs.records, ar)
 }
 
-func (cs *CallStack) Pop() (ar *ActivationRecord){
+func (cs *CallStack) Pop() (ar *ActivationRecord) {
 	ar = cs.records[len(cs.records)-1]
 	cs.records = cs.records[:len(cs.records)-1]
 	return
@@ -46,7 +46,7 @@ func (cs *CallStack) String() string {
 	for i, record := range cs.records {
 		records[i] = record.String()
 	}
-	for i, j := 0, len(records)-1; i<j; i, j = i+1, j-1 {
+	for i, j := 0, len(records)-1; i < j; i, j = i+1, j-1 {
 		records[i], records[j] = records[j], records[i]
 	}
 	sb := strings.Builder{}

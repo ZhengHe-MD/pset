@@ -3,12 +3,13 @@ package throttler
 import (
 	"context"
 	"errors"
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/goleak"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/goleak"
 )
 
 func _newWithGCInterval(ctx context.Context, timeout time.Duration, interval time.Duration) *throttler {

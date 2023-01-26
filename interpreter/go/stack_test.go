@@ -1,16 +1,17 @@
 package main
 
 import (
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestActivationRecord_String(t *testing.T) {
-	tests := map[string]struct{
+	tests := map[string]struct {
 		givenActivationRecord *ActivationRecord
 		wantString            string
-	} {
+	}{
 		"empty call stack": {
 			givenActivationRecord: &ActivationRecord{
 				Name:         "Main",
@@ -18,7 +19,7 @@ func TestActivationRecord_String(t *testing.T) {
 				NestingLevel: 1,
 				Members:      nil,
 			},
-			wantString:     `1: PROGRAM Main`,
+			wantString: `1: PROGRAM Main`,
 		},
 		"has members": {
 			givenActivationRecord: &ActivationRecord{

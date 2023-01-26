@@ -2,8 +2,9 @@ package main
 
 import (
 	"flag"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func NewInterpreter() *Interpreter {

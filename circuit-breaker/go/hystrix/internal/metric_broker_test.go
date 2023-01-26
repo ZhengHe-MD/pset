@@ -1,11 +1,12 @@
 package internal
 
 import (
-	"github.com/stretchr/testify/assert"
 	"hystrix/internal/collector"
 	"hystrix/internal/command"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestChannelBroker_All(t *testing.T) {

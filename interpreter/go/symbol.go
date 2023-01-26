@@ -26,7 +26,7 @@ var _ Symbol = (*ProcedureSymbol)(nil)
 
 func NewBuiltinTypeSymbol(name string) *BuiltinTypeSymbol {
 	return &BuiltinTypeSymbol{
-		name:       name,
+		name: name,
 	}
 }
 

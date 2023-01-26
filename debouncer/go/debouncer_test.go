@@ -1,11 +1,12 @@
 package debouncer
 
 import (
-	"github.com/stretchr/testify/assert"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDebouncer_Debounce(t *testing.T) {

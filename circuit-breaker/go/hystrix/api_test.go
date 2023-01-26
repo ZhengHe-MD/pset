@@ -3,10 +3,11 @@ package hystrix
 import (
 	"context"
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"hystrix/config"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSuccess(t *testing.T) {
